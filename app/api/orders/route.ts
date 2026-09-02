@@ -1,0 +1,51 @@
+import { NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/mongodb";
+import { calculateTotal, getUnitPrice } from "@/lib/pricing";
+import { orderSchema } from "@/lib/validation";
+import { Order } from "@/models/Order";
+import { Setting } from "@/models/Setting";
+
+function newOrderId() {
+  return `MC-${Math.floor(1000 + Math.random() * 9000)}`;
+}
+
+export function prepareTrustedOrder(input: ReturnType<typeof orderSchema.parse>) {
+  const unitPrice = getUnitPrice(input.cupSize, input.flavour);
+  return { ...input, address: input.address || undefined, unitPrice, totalPrice: calculateTotal(input.cupSize, input.flavour, input.quantity) };
+}
+
+export function canAcceptOrders(setting: { value: boolean } | null) {
+  return setting?.value !== false;
+}
+
+export async function POST(request: Request) {
+  try {
+    const parsed = orderSchema.safeParse(await request.json());
+    if (!parsed.success) return NextResponse.json({ message: "Please check your order details and try again." }, { status: 400 });
+    await connectToDatabase();
+    const setting = await Setting.findOne({ key: "ordersEnabled" }).lean<{ value: boolean }>();
+    if (!canAcceptOrders(setting)) return NextResponse.json({ message: "We're currently not accepting orders. Please check back soon." }, { status: 409 });
+
+    const input = parsed.data;
+    const trusted = prepareTrustedOrder(input);
+    let saved;
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      try {
+        saved = await Order.create({ ...trusted, orderId: newOrderId() });
+        break;
+      } catch (error) {
+        if (!(error && typeof error === "object" && "code" in error && error.code === 11000)) throw error;
+      }
+    }
+    if (!saved) throw new Error("Could not allocate order ID");
+    const order = {
+      orderId: saved.orderId, customerName: saved.customerName, mobile: saved.mobile,
+      address: saved.address, cupSize: saved.cupSize, flavour: saved.flavour,
+      quantity: saved.quantity, unitPrice: saved.unitPrice, totalPrice: saved.totalPrice,
+      preferredTime: saved.preferredTime,
+    };
+    return NextResponse.json({ order, whatsappNumber: process.env.WHATSAPP_ORDER_NUMBER || "917734015723" }, { status: 201 });
+  } catch {
+    return NextResponse.json({ message: "Something went wrong while placing your order. Please try again." }, { status: 500 });
+  }
+}
