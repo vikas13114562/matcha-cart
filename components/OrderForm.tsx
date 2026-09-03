@@ -12,13 +12,19 @@ export default function OrderForm() {
   const [confirmed, setConfirmed] = useState<ConfirmedOrder | null>(null);
   const [whatsappNumber, setWhatsappNumber] = useState("917734015723");
   const [serverError, setServerError] = useState("");
-  const { register, control, handleSubmit, formState: { errors, isSubmitting } } = useForm<OrderInput>({
+  const { register, control, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<OrderInput>({
     resolver: zodResolver(orderSchema),
     defaultValues: { customerName: "", mobile: "", address: "", cupSize: undefined, flavour: undefined, quantity: 1, preferredTime: "" },
   });
   const [size, flavour, quantity = 1, time] = useWatch({ control, name: ["cupSize", "flavour", "quantity", "preferredTime"] });
   const unitPrice = size && flavour ? getUnitPrice(size, flavour) : 0;
   const total = size && flavour ? calculateTotal(size, flavour, quantity) : 0;
+
+  function closeConfirmation() {
+    setConfirmed(null);
+    setServerError("");
+    reset();
+  }
 
   async function submit(values: OrderInput) {
     setServerError("");
@@ -55,7 +61,7 @@ export default function OrderForm() {
         <button className="cta" type="submit" disabled={isSubmitting}>{isSubmitting ? "Placing your order..." : "Place Order 🍵"}</button>
         {serverError && <p className="server-error" role="alert">{serverError}</p>}
       </form>
-      {confirmed && <PaymentModal order={confirmed} whatsappNumber={whatsappNumber} onClose={() => setConfirmed(null)} />}
+      {confirmed && <PaymentModal order={confirmed} whatsappNumber={whatsappNumber} onClose={closeConfirmation} />}
     </>
   );
 }
