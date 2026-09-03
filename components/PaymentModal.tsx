@@ -3,12 +3,15 @@
 import Image from "next/image";
 import { buildWhatsAppUrl, ConfirmedOrder, formatTime } from "@/lib/whatsapp";
 
-export default function PaymentModal({ order, whatsappNumber }: { order: ConfirmedOrder; whatsappNumber: string }) {
+export default function PaymentModal({ order, whatsappNumber, onClose }: { order: ConfirmedOrder; whatsappNumber: string; onClose: () => void }) {
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="confirmation-title">
       <section className="modal">
-        <div aria-hidden="true" style={{ fontSize: 34 }}>✅</div>
-        <h2 id="confirmation-title" className="display">Thank You!</h2>
+        <button className="modal-close" type="button" aria-label="Close order details" onClick={onClose}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+        </button>
+        <div aria-hidden="true" style={{ fontSize: 34 }}>💬</div>
+        <h2 id="confirmation-title" className="display">Finish on WhatsApp</h2>
         <p className="modal-copy">Your order has been saved. One important step remains: send it to us on WhatsApp.</p>
         <div className="order-pill">
           <strong>Order {order.orderId}</strong>
@@ -23,7 +26,7 @@ export default function PaymentModal({ order, whatsappNumber }: { order: Confirm
           <strong>Important: send your order on WhatsApp</strong>
           <p>Tap the button below, then press <strong>Send</strong> in WhatsApp to share your order with us. This step is required to complete your order.</p>
         </div>
-        <a className="whatsapp" href={buildWhatsAppUrl(order, whatsappNumber)} target="_blank" rel="noreferrer">Send Order on WhatsApp</a>
+        <a className="whatsapp" href={buildWhatsAppUrl(order, whatsappNumber)} target="_blank" rel="noreferrer" onClick={onClose}>Send Order on WhatsApp</a>
       </section>
     </div>
   );

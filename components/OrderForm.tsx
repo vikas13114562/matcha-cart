@@ -43,7 +43,7 @@ export default function OrderForm() {
         <div className="field"><label htmlFor="mobile">Mobile number</label><input id="mobile" className="input" type="tel" inputMode="numeric" autoComplete="tel" maxLength={10} placeholder="10-digit mobile number" {...register("mobile")} />{errors.mobile && <p className="error">{errors.mobile.message}</p>}</div>
         <div className="field"><label htmlFor="address">Address <span style={{ fontWeight: 500, color: "#7b847c" }}>(optional)</span></label><textarea id="address" className="input" autoComplete="street-address" placeholder="Delivery or landmark details" {...register("address")} />{errors.address && <p className="error">{errors.address.message}</p>}</div>
 
-        <section className="section"><h2 className="section-title">Choose your size <span>Step 02</span></h2><Controller control={control} name="cupSize" render={({ field }) => <div className="choice-grid">{CUP_SIZES.map(item => <button key={item} className={`choice ${field.value === item ? "selected" : ""}`} type="button" aria-pressed={field.value === item} onClick={() => field.onChange(item)}>{item}<br /><small>{item === "300 ML" ? "from ₹89" : "from ₹149"}</small></button>)}</div>} />{errors.cupSize && <p className="error">{errors.cupSize.message}</p>}</section>
+        <section className="section"><h2 className="section-title">Choose your size <span>Step 02</span></h2><Controller control={control} name="cupSize" render={({ field }) => <div className="choice-grid">{CUP_SIZES.map(item => <button key={item} className={`choice ${field.value === item ? "selected" : ""}`} type="button" aria-pressed={field.value === item} onClick={() => field.onChange(item)}>{item}<br /><small>{item === "300 ML" ? "Starting price ₹89" : "Starting price ₹149"}</small></button>)}</div>} />{errors.cupSize && <p className="error">{errors.cupSize.message}</p>}</section>
 
         <section className="section"><h2 className="section-title">Pick a flavour <span>Step 03</span></h2><Controller control={control} name="flavour" render={({ field }) => <div className="choice-grid">{FLAVOURS.map(item => <button key={item.value} className={`choice flavour ${field.value === item.value ? "selected" : ""}`} type="button" aria-pressed={field.value === item.value} onClick={() => field.onChange(item.value)}><span className="emoji">{item.emoji}</span><span>{item.value}</span></button>)}</div>} />{errors.flavour && <p className="error">{errors.flavour.message}</p>}</section>
 
@@ -55,7 +55,7 @@ export default function OrderForm() {
         <button className="cta" type="submit" disabled={isSubmitting}>{isSubmitting ? "Placing your order..." : "Place Order 🍵"}</button>
         {serverError && <p className="server-error" role="alert">{serverError}</p>}
       </form>
-      {confirmed && <PaymentModal order={confirmed} whatsappNumber={whatsappNumber} />}
+      {confirmed && <PaymentModal order={confirmed} whatsappNumber={whatsappNumber} onClose={() => setConfirmed(null)} />}
     </>
   );
 }
