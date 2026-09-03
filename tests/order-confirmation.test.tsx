@@ -5,7 +5,7 @@ import OrderForm from "@/components/OrderForm";
 const savedOrder = {
   orderId: "MC-1234", customerName: "Test Customer", mobile: "9876543210",
   address: "Flat 1204, Tower A, Apex The Kremlin, Pratap Vihar, Ghaziabad, Uttar Pradesh - 201009", cupSize: "500 ML", flavour: "Blueberry", quantity: 2,
-  unitPrice: 159, totalPrice: 318, preferredTime: "19:30",
+  unitPrice: 159, totalPrice: 318, preferredTime: "10:30", deliveryAt: "2026-09-03T05:00:00.000Z",
 };
 
 beforeEach(() => { vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-09-03T10:00:00+05:30")); });
@@ -23,7 +23,6 @@ async function placeOrder() {
   fireEvent.click(screen.getByRole("button", { name: /500 ML/ }));
   fireEvent.click(screen.getByRole("button", { name: /Blueberry/ }));
   fireEvent.click(screen.getByRole("button", { name: "Increase quantity" }));
-  fireEvent.change(screen.getByLabelText("Pickup / preparation time"), { target: { value: savedOrder.preferredTime } });
   fireEvent.click(screen.getByRole("button", { name: /Place Order/ }));
   return await screen.findByRole("dialog");
 }
@@ -68,7 +67,7 @@ describe("order confirmation flow", () => {
     expect(screen.queryByLabelText("Enter floor and flat no. (required)")).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Tower (required)"), { target: { value: "A" } });
     expect(screen.getByLabelText("Enter floor and flat no. (required)")).toHaveValue("");
-    expect(screen.getByLabelText("Pickup / preparation time")).toHaveValue("");
+    expect(screen.getByLabelText("Estimated delivery time (IST)")).toHaveValue("10:30");
     expect(screen.getByRole("button", { name: /500 ML/ })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByRole("button", { name: /Blueberry/ })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByRole("status")).toHaveTextContent("1");

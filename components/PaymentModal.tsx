@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { buildWhatsAppUrl, ConfirmedOrder, formatTime } from "@/lib/whatsapp";
+import { buildWhatsAppUrl, ConfirmedOrder, formatDeliveryTime } from "@/lib/whatsapp";
 
 export default function PaymentModal({
   order,
@@ -98,8 +98,8 @@ export default function PaymentModal({
                 <strong>₹{order.totalPrice}</strong>
               </div>
               <div className="summary-row">
-                <span>Preferred time</span>
-                <strong>{formatTime(order.preferredTime)}</strong>
+                <span>Estimated delivery</span>
+                <strong>{formatDeliveryTime(order)}</strong>
               </div>
             </div>
             <p className="modal-copy" style={{ marginTop: 16 }}>

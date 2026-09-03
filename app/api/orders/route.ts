@@ -6,15 +6,15 @@ import { Order } from "@/models/Order";
 import { getCartStatus } from "@/lib/cart-settings";
 import { closedCartMessage } from "@/lib/cart-status";
 import { formatDeliveryAddress } from "@/lib/addresses";
-import { preferredTimeError } from "@/lib/preferred-time";
+import { getDeliveryDetails } from "@/lib/preferred-time";
 
 function newOrderId() {
   return `MC-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
-export function prepareTrustedOrder(input: ReturnType<typeof orderSchema.parse>) {
+export function prepareTrustedOrder(input: ReturnType<typeof orderSchema.parse>, now = Date.now()) {
   const unitPrice = getUnitPrice(input.cupSize, input.flavour);
-  return { ...input, address: formatDeliveryAddress(input), unitPrice, totalPrice: calculateTotal(input.cupSize, input.flavour, input.quantity) };
+  return { ...input, ...getDeliveryDetails(now), address: formatDeliveryAddress(input), unitPrice, totalPrice: calculateTotal(input.cupSize, input.flavour, input.quantity) };
 }
 
 export function canAcceptOrders(setting: { value: boolean } | null) {
@@ -35,8 +35,6 @@ export async function POST(request: Request) {
   try {
     const parsed = orderSchema.safeParse(await request.json());
     if (!parsed.success) return NextResponse.json({ message: "Please check your order details and try again." }, { status: 400 });
-    const timeError = preferredTimeError(parsed.data.preferredTime);
-    if (timeError) return NextResponse.json({ message: timeError }, { status: 400 });
     await connectToDatabase();
     const status = await getCartStatus();
     if (!status.ordersEnabled) return NextResponse.json({ message: closedCartMessage(status.reopensAt) }, { status: 409 });
@@ -58,6 +56,7 @@ export async function POST(request: Request) {
       address: saved.address, cupSize: saved.cupSize, flavour: saved.flavour,
       quantity: saved.quantity, unitPrice: saved.unitPrice, totalPrice: saved.totalPrice,
       preferredTime: saved.preferredTime,
+      deliveryAt: saved.deliveryAt,
     };
     return NextResponse.json({ order, whatsappNumber: process.env.WHATSAPP_ORDER_NUMBER || "917734015723" }, { status: 201 });
   } catch (error) {

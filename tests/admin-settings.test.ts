@@ -3,14 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(), connect: vi.fn(), setting: vi.fn(), update: vi.fn(), find: vi.fn(),
-  sort: vi.fn(), limit: vi.fn(), select: vi.fn(), orders: vi.fn(),
+  sort: vi.fn(), limit: vi.fn(), select: vi.fn(), orders: vi.fn(), create: vi.fn(),
 }));
 vi.mock("@/lib/auth", () => ({ isAdminAuthenticated: mocks.auth }));
 vi.mock("@/lib/mongodb", () => ({ connectToDatabase: mocks.connect }));
 vi.mock("@/models/Setting", () => ({ Setting: {
   findOne: () => ({ lean: mocks.setting }), findOneAndUpdate: mocks.update,
 } }));
-vi.mock("@/models/Order", () => ({ Order: { find: mocks.find } }));
+vi.mock("@/models/Order", () => ({ Order: { find: mocks.find, create: mocks.create } }));
 import { GET, PATCH } from "@/app/api/admin/settings/route";
 import { GET as publicStatus } from "@/app/api/cart/status/route";
 import { POST as submitOrder } from "@/app/api/orders/route";
@@ -30,18 +30,19 @@ beforeEach(() => {
   mocks.limit.mockReturnValue({ select: mocks.select });
   mocks.select.mockReturnValue({ lean: mocks.orders });
   mocks.orders.mockResolvedValue([{ orderId: "MC-1000" }]);
+  mocks.create.mockImplementation(async (data: Record<string, unknown>) => data);
 });
 
 afterEach(() => { vi.restoreAllMocks(); });
 
 describe("admin settings API", () => {
-  it("rejects an order inside the preparation buffer before touching the database", async () => {
+  it.each(["10:29", "19:30", undefined])("assigns delivery 30 minutes ahead regardless of supplied time %s", async preferredTime => {
     const response = await submitOrder(new Request("http://localhost/api/orders", { method: "POST", body: JSON.stringify({
-      customerName: "Test customer", mobile: "9876543210", society: "Apex The Kremlin", tower: "A", flatNumber: "1204", cupSize: "500 ML", flavour: "Blueberry", quantity: 3, preferredTime: "10:29",
+      customerName: "Test customer", mobile: "9876543210", society: "Apex The Kremlin", tower: "A", flatNumber: "1204", cupSize: "500 ML", flavour: "Blueberry", quantity: 3, preferredTime, deliveryAt: "2099-01-01T00:00:00.000Z",
     }) }));
-    expect(response.status).toBe(400);
-    expect((await response.json()).message).toContain("at least 30 minutes");
-    expect(mocks.connect).not.toHaveBeenCalled();
+    expect(response.status).toBe(201);
+    expect((await response.json()).order).toMatchObject({ preferredTime: "10:30", deliveryAt: "2026-09-03T05:00:00.000Z" });
+    expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ preferredTime: "10:30", deliveryAt: "2026-09-03T05:00:00.000Z" }));
   });
   it("requires authentication for reads and writes", async () => {
     mocks.auth.mockResolvedValue(false);

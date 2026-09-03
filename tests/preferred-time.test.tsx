@@ -1,40 +1,37 @@
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { earliestPreferredTime, preferredTimeError } from "@/lib/preferred-time";
+import { getDeliveryDetails } from "@/lib/preferred-time";
 import OrderForm from "@/components/OrderForm";
 
+// Keep the device clock fixed so delivery previews are deterministic.
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 
-describe("30-minute preparation time", () => {
-  const now = Date.parse("2026-09-03T14:00:00+05:30");
-  it("rejects past and too-soon times but accepts exactly 30 minutes ahead", () => {
-    expect(earliestPreferredTime(now)).toBe("14:30");
-    for (const time of ["09:00", "14:00", "14:29"]) expect(preferredTimeError(time, now)).toContain("at least 30 minutes");
-    expect(preferredTimeError("14:30", now)).toBeNull();
-    expect(preferredTimeError("15:00", now)).toBeNull();
+describe("automatic 30-minute delivery", () => {
+  const now = Date.parse("2026-09-03T14:00:15+05:30");
+  it("schedules delivery exactly 30 minutes after the order, including seconds", () => {
+    const delivery = getDeliveryDetails(now);
+    expect(Date.parse(delivery.deliveryAt) - now).toBe(30 * 60_000);
+    expect(delivery.preferredTime).toBe("14:30");
   });
-  it("rounds forward so seconds never shorten the preparation buffer", () => {
-    expect(earliestPreferredTime(now + 1_000)).toBe("14:31");
-    expect(preferredTimeError("14:30", now + 1_000)).not.toBeNull();
+  it("preserves the delivery date when the estimate crosses midnight", () => {
+    const delivery = getDeliveryDetails(Date.parse("2026-09-03T23:45:00+05:30"));
+    expect(delivery.preferredTime).toBe("00:15");
+    expect(delivery.deliveryAt).toBe("2026-09-03T18:45:00.000Z");
   });
-  it("does not interpret a past time as tomorrow", () => {
-    const late = Date.parse("2026-09-03T23:30:00+05:30");
-    expect(earliestPreferredTime(late)).toBeNull();
-    expect(preferredTimeError("00:15", late)).toContain("tomorrow");
-    expect(earliestPreferredTime(Date.parse("2026-09-03T23:29:00+05:30"))).toBe("23:59");
-  });
-  it("updates the picker minimum while the page stays open", async () => {
+  it("shows a read-only estimate and updates it while the page stays open", async () => {
     vi.useFakeTimers(); vi.setSystemTime(now);
     render(<OrderForm />);
-    expect(screen.getByLabelText("Pickup / preparation time")).toHaveAttribute("min", "14:30");
+    const field = screen.getByLabelText("Estimated delivery time (IST)");
+    expect(field).toHaveValue("14:30");
+    expect(field).toHaveAttribute("readonly");
+    expect(screen.getByText(/Delivery is scheduled for 30 minutes after you place your order/)).toBeInTheDocument();
     await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
-    expect(screen.getByLabelText("Pickup / preparation time")).toHaveAttribute("min", "14:31");
+    expect(field).toHaveValue("14:31");
   });
-  it("disables ordering when no valid pickup time remains today", () => {
-    vi.useFakeTimers(); vi.setSystemTime(new Date("2026-09-03T23:30:00+05:30"));
+  it("allows an automatic estimate across midnight", () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date("2026-09-03T23:45:00+05:30"));
     render(<OrderForm />);
-    expect(screen.getByLabelText("Pickup / preparation time")).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Place Order/ })).toBeDisabled();
-    expect(screen.getByText(/No pickup times remain today/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Estimated delivery time (IST)")).toHaveValue("00:15");
+    expect(screen.getByRole("button", { name: /Place Order/ })).toBeEnabled();
   });
 });

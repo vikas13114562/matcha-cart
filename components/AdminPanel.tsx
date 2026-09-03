@@ -1,12 +1,12 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { formatTime } from "@/lib/whatsapp";
+import { formatDeliveryTime } from "@/lib/whatsapp";
 import { formatOpeningTime, fromIndiaDateTimeInput, toIndiaDateTimeInput } from "@/lib/cart-status";
 
 type RecentOrder = {
   _id: string; orderId: string; customerName: string; mobile: string; address?: string;
-  flavour: string; cupSize: string; quantity: number; totalPrice: number; preferredTime: string; createdAt?: string;
+  flavour: string; cupSize: string; quantity: number; totalPrice: number; preferredTime: string; deliveryAt?: string; createdAt?: string;
 };
 
 async function readResponse(response: Response) {
@@ -170,7 +170,7 @@ export default function AdminPanel({ initiallyAuthenticated }: { initiallyAuthen
           <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><strong>{order.orderId}</strong><strong>₹{order.totalPrice}</strong></div>
           <p style={{ margin: "8px 0 4px" }}>{order.flavour} • {order.cupSize} • Qty {order.quantity}</p>
           <p style={{ margin: "8px 0" }}>{order.customerName} · WhatsApp: <a href={`tel:${order.mobile}`}>{order.mobile}</a></p>
-          <small>Preferred time: {formatTime(order.preferredTime)}</small>
+          <small>Estimated delivery: {formatDeliveryTime(order)}</small>
           {order.address && <p>{order.address}</p>}
           {order.createdAt && <p style={{ marginBottom: 0 }}><small>Placed: {formatOpeningTime(order.createdAt)}</small></p>}
         </article>

@@ -8,7 +8,7 @@ import { ConfirmedOrder, formatTime } from "@/lib/whatsapp";
 import { OrderInput, orderSchema } from "@/lib/validation";
 import PaymentModal from "./PaymentModal";
 import { addresses } from "@/lib/addresses";
-import { earliestPreferredTime, preferredTimeError } from "@/lib/preferred-time";
+import { getDeliveryTime } from "@/lib/preferred-time";
 
 function subscribeToClock(update: () => void) {
   const timer = window.setInterval(update, 1_000);
@@ -16,18 +16,18 @@ function subscribeToClock(update: () => void) {
   return () => { window.clearInterval(timer); window.removeEventListener("focus", update); };
 }
 
-const serverPickupTime = () => undefined;
+const serverDeliveryTime = () => undefined;
 
 export default function OrderForm() {
   const [confirmed, setConfirmed] = useState<ConfirmedOrder | null>(null);
   const [whatsappNumber, setWhatsappNumber] = useState("917734015723");
   const [serverError, setServerError] = useState("");
-  const minimumTime = useSyncExternalStore<string | null | undefined>(subscribeToClock, earliestPreferredTime, serverPickupTime);
-  const { register, control, handleSubmit, reset, setValue, setError, clearErrors, formState: { errors, isSubmitting } } = useForm<OrderInput>({
+  const deliveryTime = useSyncExternalStore<string | undefined>(subscribeToClock, getDeliveryTime, serverDeliveryTime);
+  const { register, control, handleSubmit, reset, setValue, clearErrors, formState: { errors, isSubmitting } } = useForm<OrderInput>({
     resolver: zodResolver(orderSchema),
-    defaultValues: { customerName: "", mobile: "", society: addresses.length === 1 ? addresses[0].society : "", tower: "", flatNumber: "", cupSize: undefined, flavour: undefined, quantity: 1, preferredTime: "" },
+    defaultValues: { customerName: "", mobile: "", society: addresses.length === 1 ? addresses[0].society : "", tower: "", flatNumber: "", cupSize: undefined, flavour: undefined, quantity: 1 },
   });
-  const [size, flavour, quantity = 1, time] = useWatch({ control, name: ["cupSize", "flavour", "quantity", "preferredTime"] });
+  const [size, flavour, quantity = 1] = useWatch({ control, name: ["cupSize", "flavour", "quantity"] });
   const unitPrice = size && flavour ? getUnitPrice(size, flavour) : 0;
   const total = size && flavour ? calculateTotal(size, flavour, quantity) : 0;
   const [society, tower] = useWatch({ control, name: ["society", "tower"] });
@@ -41,8 +41,6 @@ export default function OrderForm() {
 
   async function submit(values: OrderInput) {
     setServerError("");
-    const timeError = preferredTimeError(values.preferredTime);
-    if (timeError) { setError("preferredTime", { message: timeError }, { shouldFocus: true }); return; }
     try {
       const response = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(values) });
       const data = await response.json().catch(() => null);
@@ -95,10 +93,10 @@ export default function OrderForm() {
 
         <section className="section"><h2 className="section-title">How many? <span>Step 04</span></h2><Controller control={control} name="quantity" render={({ field }) => <div className="quantity"><button type="button" aria-label="Decrease quantity" disabled={field.value <= MIN_QUANTITY} onClick={() => field.onChange(Math.max(MIN_QUANTITY, field.value - 1))}>−</button><output aria-live="polite">{field.value}</output><button type="button" aria-label="Increase quantity" disabled={field.value >= MAX_QUANTITY} onClick={() => field.onChange(Math.min(MAX_QUANTITY, field.value + 1))}>+</button></div>} />{errors.quantity && <p className="error">{errors.quantity.message}</p>}</section>
 
-        <section className="section"><h2 className="section-title">Preferred time <span>Step 05</span></h2><div className="field"><label htmlFor="time">Pickup / preparation time</label><input id="time" className="input" type="time" min={minimumTime ?? undefined} max="23:59" disabled={minimumTime === null} aria-describedby="pickup-time-help" {...register("preferredTime")} /><small id="pickup-time-help">{minimumTime === null ? "No pickup times remain today. Please order again tomorrow." : `Choose a time today at least 30 minutes from now (IST).${minimumTime ? ` Earliest pickup: ${formatTime(minimumTime)}.` : ""}`}</small>{errors.preferredTime && <p className="error">{errors.preferredTime.message}</p>}</div></section>
+        <section className="section"><h2 className="section-title">Delivery time <span>Step 05</span></h2><div className="field"><label htmlFor="time">Estimated delivery time (IST)</label><input id="time" className="input" type="time" value={deliveryTime ?? ""} readOnly aria-describedby="delivery-time-help" /><small id="delivery-time-help">Delivery is scheduled for 30 minutes after you place your order, to the address above. The time is set automatically.</small></div></section>
 
-        <section className="summary" aria-live="polite"><strong>{flavour ? `${flavour} Matcha` : "Your Matcha"}</strong><div className="summary-row"><span>{size || "Choose size"}</span><span>{unitPrice ? `₹${unitPrice} × ${quantity}` : "—"}</span></div><div className="summary-row"><span>Preferred time</span><span>{time ? formatTime(time) : "Not selected"}</span></div><div className="summary-row summary-total"><span>Total</span><span>₹{total}</span></div></section>
-        <button className="cta" type="submit" disabled={isSubmitting || minimumTime === null}>{isSubmitting ? "Placing your order..." : "Place Order 🍵"}</button>
+        <section className="summary" aria-live="polite"><strong>{flavour ? `${flavour} Matcha` : "Your Matcha"}</strong><div className="summary-row"><span>{size || "Choose size"}</span><span>{unitPrice ? `₹${unitPrice} × ${quantity}` : "—"}</span></div><div className="summary-row"><span>Estimated delivery</span><span>{deliveryTime ? `${formatTime(deliveryTime)} IST` : "In 30 minutes"}</span></div><div className="summary-row summary-total"><span>Total</span><span>₹{total}</span></div></section>
+        <button className="cta" type="submit" disabled={isSubmitting}>{isSubmitting ? "Placing your order..." : "Place Order 🍵"}</button>
         {serverError && <p className="server-error" role="alert">{serverError}</p>}
       </form>
       {confirmed && <PaymentModal order={confirmed} whatsappNumber={whatsappNumber} onClose={closeConfirmation} />}

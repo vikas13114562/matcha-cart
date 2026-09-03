@@ -15,6 +15,7 @@ const orderSchema = new Schema(
     unitPrice: { type: Number, required: true },
     totalPrice: { type: Number, required: true },
     preferredTime: { type: String, required: true },
+    deliveryAt: { type: Date, default: undefined },
   },
   { timestamps: true },
 );

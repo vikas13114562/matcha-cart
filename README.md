@@ -59,7 +59,7 @@ If `/api/admin/settings` returns an HTML **404** in local development despite th
 
 Customers enter their details, choose a size, flavour, quantity, and preferred time, and see a live total. After server validation and MongoDB storage, a payment QR confirmation appears. **The website does not automatically send the WhatsApp message. It opens WhatsApp with the saved order details pre-filled, and the customer presses Send.**
 
-Pickup times are for today in India Standard Time and must be at least 30 minutes after submission. The picker updates its earliest available time while the page is open, and the server enforces the same rule. When the 30-minute buffer leaves no time today, customers are asked to order again tomorrow.
+Delivery is automatically scheduled for 30 minutes after the order is placed. Customers see a read-only estimate in India Standard Time; the server calculates the actual delivery timestamp and ignores any supplied time. The saved date handles deliveries crossing midnight, and the admin dashboard, confirmation, and WhatsApp message show the delivery estimate.
 
 ## Verification
 
