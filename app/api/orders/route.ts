@@ -6,7 +6,7 @@ import { Order } from "@/models/Order";
 import { getCartStatus } from "@/lib/cart-settings";
 import { closedCartMessage } from "@/lib/cart-status";
 import { formatDeliveryAddress } from "@/lib/addresses";
-import { getDeliveryDetails } from "@/lib/preferred-time";
+import { getDeliveryDetails, preferredTimeError } from "@/lib/preferred-time";
 
 function newOrderId() {
   return `MC-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -14,7 +14,7 @@ function newOrderId() {
 
 export function prepareTrustedOrder(input: ReturnType<typeof orderSchema.parse>, now = Date.now()) {
   const unitPrice = getUnitPrice(input.cupSize, input.flavour);
-  return { ...input, ...getDeliveryDetails(now), address: formatDeliveryAddress(input), unitPrice, totalPrice: calculateTotal(input.cupSize, input.flavour, input.quantity) };
+  return { ...input, ...getDeliveryDetails(now, input.preferredTime), address: formatDeliveryAddress(input), unitPrice, totalPrice: calculateTotal(input.cupSize, input.flavour, input.quantity) };
 }
 
 export function canAcceptOrders(setting: { value: boolean } | null) {
@@ -40,7 +40,10 @@ export async function POST(request: Request) {
     if (!status.ordersEnabled) return NextResponse.json({ message: closedCartMessage(status.reopensAt) }, { status: 409 });
 
     const input = parsed.data;
-    const trusted = prepareTrustedOrder(input);
+    const now = Date.now();
+    const timeError = preferredTimeError(input.preferredTime, now);
+    if (timeError) return NextResponse.json({ message: timeError }, { status: 400 });
+    const trusted = prepareTrustedOrder(input, now);
     let saved;
     for (let attempt = 0; attempt < 8; attempt += 1) {
       try {

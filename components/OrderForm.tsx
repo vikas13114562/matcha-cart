@@ -8,7 +8,7 @@ import { ConfirmedOrder, formatTime } from "@/lib/whatsapp";
 import { OrderInput, orderSchema } from "@/lib/validation";
 import PaymentModal from "./PaymentModal";
 import { addresses } from "@/lib/addresses";
-import { getDeliveryTime } from "@/lib/preferred-time";
+import { getDeliveryTime, preferredTimeError } from "@/lib/preferred-time";
 
 function subscribeToClock(update: () => void) {
   const timer = window.setInterval(update, 1_000);
@@ -22,12 +22,14 @@ export default function OrderForm() {
   const [confirmed, setConfirmed] = useState<ConfirmedOrder | null>(null);
   const [whatsappNumber, setWhatsappNumber] = useState("917734015723");
   const [serverError, setServerError] = useState("");
-  const deliveryTime = useSyncExternalStore<string | undefined>(subscribeToClock, getDeliveryTime, serverDeliveryTime);
-  const { register, control, handleSubmit, reset, setValue, clearErrors, formState: { errors, isSubmitting } } = useForm<OrderInput>({
+  const earliestTime = useSyncExternalStore<string | undefined>(subscribeToClock, getDeliveryTime, serverDeliveryTime);
+  const { register, control, handleSubmit, reset, setValue, setError, clearErrors, formState: { errors, isSubmitting } } = useForm<OrderInput>({
     resolver: zodResolver(orderSchema),
-    defaultValues: { customerName: "", mobile: "", society: addresses.length === 1 ? addresses[0].society : "", tower: "", flatNumber: "", cupSize: undefined, flavour: undefined, quantity: 1 },
+    defaultValues: { customerName: "", mobile: "", society: addresses.length === 1 ? addresses[0].society : "", tower: "", flatNumber: "", cupSize: undefined, flavour: undefined, quantity: 1, preferredTime: "" },
   });
   const [size, flavour, quantity = 1] = useWatch({ control, name: ["cupSize", "flavour", "quantity"] });
+  const deliveryTime = useWatch({ control, name: "preferredTime" });
+  const timeError = deliveryTime && earliestTime ? preferredTimeError(deliveryTime) : undefined;
   const unitPrice = size && flavour ? getUnitPrice(size, flavour) : 0;
   const total = size && flavour ? calculateTotal(size, flavour, quantity) : 0;
   const [society, tower] = useWatch({ control, name: ["society", "tower"] });
@@ -41,6 +43,8 @@ export default function OrderForm() {
 
   async function submit(values: OrderInput) {
     setServerError("");
+    const message = preferredTimeError(values.preferredTime);
+    if (message) { setError("preferredTime", { message }); return; }
     try {
       const response = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(values) });
       const data = await response.json().catch(() => null);
@@ -93,9 +97,9 @@ export default function OrderForm() {
 
         <section className="section"><h2 className="section-title">How many? <span>Step 04</span></h2><Controller control={control} name="quantity" render={({ field }) => <div className="quantity"><button type="button" aria-label="Decrease quantity" disabled={field.value <= MIN_QUANTITY} onClick={() => field.onChange(Math.max(MIN_QUANTITY, field.value - 1))}>−</button><output aria-live="polite">{field.value}</output><button type="button" aria-label="Increase quantity" disabled={field.value >= MAX_QUANTITY} onClick={() => field.onChange(Math.min(MAX_QUANTITY, field.value + 1))}>+</button></div>} />{errors.quantity && <p className="error">{errors.quantity.message}</p>}</section>
 
-        <section className="section"><h2 className="section-title">Preferred time <span>Step 05</span></h2><div className="field"><label htmlFor="time">Preferred time</label><input id="time" className="input" type="time" value={deliveryTime ?? ""} readOnly aria-describedby="delivery-time-help" /><small id="delivery-time-help">Select your preferred time.</small></div></section>
+        <section className="section"><h2 className="section-title">Preferred time <span>Step 05</span></h2><div className="field"><label htmlFor="time">Preferred time</label><input id="time" className="input" type="time" aria-invalid={!!(timeError || errors.preferredTime)} aria-describedby="delivery-time-help delivery-time-error" {...register("preferredTime", { onChange: () => clearErrors("preferredTime") })} /><small id="delivery-time-help">Select your preferred time.</small>{(timeError || errors.preferredTime) && <p id="delivery-time-error" className="error" role="alert">{timeError || errors.preferredTime?.message}</p>}</div></section>
 
-        <section className="summary" aria-live="polite"><strong>{flavour ? `${flavour} Matcha` : "Your Matcha"}</strong><div className="summary-row"><span>{size || "Choose size"}</span><span>{unitPrice ? `₹${unitPrice} × ${quantity}` : "—"}</span></div><div className="summary-row"><span>Preferred time</span><span>{deliveryTime ? `${formatTime(deliveryTime)} IST` : "In 30 minutes"}</span></div><div className="summary-row summary-total"><span>Total</span><span>₹{total}</span></div></section>
+        <section className="summary" aria-live="polite"><strong>{flavour ? `${flavour} Matcha` : "Your Matcha"}</strong><div className="summary-row"><span>{size || "Choose size"}</span><span>{unitPrice ? `₹${unitPrice} × ${quantity}` : "—"}</span></div><div className="summary-row"><span>Preferred time</span><span>{deliveryTime ? `${formatTime(deliveryTime)} IST` : "Select your preferred time"}</span></div><div className="summary-row summary-total"><span>Total</span><span>₹{total}</span></div></section>
         <button className="cta" type="submit" disabled={isSubmitting}>{isSubmitting ? "Placing your order..." : "Place Order 🍵"}</button>
         {serverError && <p className="server-error" role="alert">{serverError}</p>}
       </form>

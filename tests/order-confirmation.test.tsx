@@ -23,6 +23,7 @@ async function placeOrder() {
   fireEvent.click(screen.getByRole("button", { name: /500 ML/ }));
   fireEvent.click(screen.getByRole("button", { name: /Blueberry/ }));
   fireEvent.click(screen.getByRole("button", { name: "Increase quantity" }));
+  fireEvent.change(screen.getByLabelText("Preferred time"), { target: { value: "10:30" } });
   fireEvent.click(screen.getByRole("button", { name: /Place Order/ }));
   return await screen.findByRole("dialog");
 }
@@ -67,7 +68,7 @@ describe("order confirmation flow", () => {
     expect(screen.queryByLabelText("Enter floor and flat no. (required)")).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Tower (required)"), { target: { value: "A" } });
     expect(screen.getByLabelText("Enter floor and flat no. (required)")).toHaveValue("");
-    expect(screen.getByLabelText("Preferred time")).toHaveValue("10:30");
+    expect(screen.getByLabelText("Preferred time")).toHaveValue("");
     expect(screen.getByRole("button", { name: /500 ML/ })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByRole("button", { name: /Blueberry/ })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByRole("status")).toHaveTextContent("1");

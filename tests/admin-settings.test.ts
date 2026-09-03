@@ -36,13 +36,19 @@ beforeEach(() => {
 afterEach(() => { vi.restoreAllMocks(); });
 
 describe("admin settings API", () => {
-  it.each(["10:29", "19:30", undefined])("assigns delivery 30 minutes ahead regardless of supplied time %s", async preferredTime => {
+  it.each(["10:29", "19:30", undefined])("validates and preserves the selected time %s", async preferredTime => {
     const response = await submitOrder(new Request("http://localhost/api/orders", { method: "POST", body: JSON.stringify({
       customerName: "Test customer", mobile: "9876543210", society: "Apex The Kremlin", tower: "A", flatNumber: "1204", cupSize: "500 ML", flavour: "Blueberry", quantity: 3, preferredTime, deliveryAt: "2099-01-01T00:00:00.000Z",
     }) }));
+    if (preferredTime !== "19:30") {
+      expect(response.status).toBe(400);
+      expect(mocks.create).not.toHaveBeenCalled();
+      if (preferredTime) expect((await response.json()).message).toContain("at least 30 minutes");
+      return;
+    }
     expect(response.status).toBe(201);
-    expect((await response.json()).order).toMatchObject({ preferredTime: "10:30", deliveryAt: "2026-09-03T05:00:00.000Z" });
-    expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ preferredTime: "10:30", deliveryAt: "2026-09-03T05:00:00.000Z" }));
+    expect((await response.json()).order).toMatchObject({ preferredTime: "19:30", deliveryAt: "2026-09-03T14:00:00.000Z" });
+    expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ preferredTime: "19:30", deliveryAt: "2026-09-03T14:00:00.000Z" }));
   });
   it("requires authentication for reads and writes", async () => {
     mocks.auth.mockResolvedValue(false);

@@ -16,6 +16,7 @@ export const orderSchema = z.object({
   cupSize: z.enum(CUP_SIZES, { message: "Choose a cup size" }),
   flavour: z.enum(flavourValues, { message: "Choose a flavour" }),
   quantity: z.number().int().min(MIN_QUANTITY).max(MAX_QUANTITY),
+  preferredTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Select your preferred time."),
 }).superRefine((input, context) => {
   const location = addresses.find(item => item.society === input.society);
   if (input.society && !location) {

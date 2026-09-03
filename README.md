@@ -59,7 +59,7 @@ If `/api/admin/settings` returns an HTML **404** in local development despite th
 
 Customers enter their details, choose a size, flavour, quantity, and preferred time, and see a live total. After server validation and MongoDB storage, a payment QR confirmation appears. **The website does not automatically send the WhatsApp message. It opens WhatsApp with the saved order details pre-filled, and the customer presses Send.**
 
-Delivery is automatically scheduled for 30 minutes after the order is placed. Customers see a read-only estimate in India Standard Time; the server calculates the actual delivery timestamp and ignores any supplied time. The saved date handles deliveries crossing midnight, and the admin dashboard, confirmation, and WhatsApp message show the delivery estimate.
+Customers select a preferred time in India Standard Time, at least 30 minutes ahead of the current time. The form and server validate the preparation window, and the server saves the selected time with its delivery date. The saved date handles deliveries crossing midnight, and the admin dashboard, confirmation, and WhatsApp message show the delivery estimate.
 
 ## Verification
 
