@@ -3,9 +3,13 @@ import { canAcceptOrders, orderErrorMessage, prepareTrustedOrder } from "@/app/a
 import { safeEqual } from "@/app/api/admin/login/route";
 import { orderSchema } from "@/lib/validation";
 
-const input = orderSchema.parse({ customerName: "Vikas", mobile: "9876543210", cupSize: "500 ML", flavour: "Blueberry", quantity: 3, preferredTime: "19:30" });
+const input = orderSchema.parse({ customerName: "Vikas", mobile: "9876543210", society: "Apex The Kremlin", tower: "A", flatNumber: "1204", cupSize: "500 ML", flavour: "Blueberry", quantity: 3, preferredTime: "19:30" });
 
 describe("server trust boundaries", () => {
+  it("builds the full address from trusted society data instead of a supplied address", () => {
+    const parsed = orderSchema.parse({ ...input, address: "A different address", city: "A different city" });
+    expect(prepareTrustedOrder(parsed).address).toBe("Flat 1204, Tower A, Apex The Kremlin, Pratap Vihar, Ghaziabad, Uttar Pradesh - 201009");
+  });
   it("recalculates unit and total price from validated selections", () => expect(prepareTrustedOrder({ ...input, unitPrice: 1, totalPrice: 1 } as typeof input)).toMatchObject({ unitPrice: 159, totalPrice: 477 }));
   it("blocks orders only when the stored setting is explicitly false", () => {
     expect(canAcceptOrders({ value: false })).toBe(false);

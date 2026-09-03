@@ -5,6 +5,7 @@ import { orderSchema } from "@/lib/validation";
 import { Order } from "@/models/Order";
 import { getCartStatus } from "@/lib/cart-settings";
 import { closedCartMessage } from "@/lib/cart-status";
+import { formatDeliveryAddress } from "@/lib/addresses";
 
 function newOrderId() {
   return `MC-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -12,7 +13,7 @@ function newOrderId() {
 
 export function prepareTrustedOrder(input: ReturnType<typeof orderSchema.parse>) {
   const unitPrice = getUnitPrice(input.cupSize, input.flavour);
-  return { ...input, address: input.address || undefined, unitPrice, totalPrice: calculateTotal(input.cupSize, input.flavour, input.quantity) };
+  return { ...input, address: formatDeliveryAddress(input), unitPrice, totalPrice: calculateTotal(input.cupSize, input.flavour, input.quantity) };
 }
 
 export function canAcceptOrders(setting: { value: boolean } | null) {

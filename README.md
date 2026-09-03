@@ -38,6 +38,7 @@ The app creates only `orders` and `settings`. The `ordersEnabled` setting is cre
 - The supplied PhonePe payment QR is stored at `public/payment-qr.png`. Replace that file while keeping the same filename whenever the payment account changes.
 - Replace `public/logo.png` to change the logo.
 - Edit flavours and all prices in `lib/pricing.ts`.
+- Add delivery societies in `lib/addresses.ts`, using the `society`, `Towers`, `Area`, `city`, `state`, and `pincode` fields. A single society is selected by default; with multiple societies, customers choose one. Tower and flat number are required. Changing society clears the tower and flat number. The server validates the selected location and builds the full address for the saved order, admin dashboard, and WhatsApp message.
 - Edit the tagline in `app/page.tsx`.
 - Edit `MIN_QUANTITY` and `MAX_QUANTITY` in `lib/pricing.ts`.
 - Change the WhatsApp destination through `WHATSAPP_ORDER_NUMBER` (country code + number, digits only).

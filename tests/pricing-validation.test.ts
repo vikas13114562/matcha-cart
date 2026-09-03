@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { calculateTotal, getUnitPrice } from "@/lib/pricing";
 import { orderSchema } from "@/lib/validation";
 
-const validOrder = { customerName: "Vikas", mobile: "9876543210", address: "", cupSize: "500 ML", flavour: "Blueberry", quantity: 3, preferredTime: "19:30" } as const;
+const validOrder = { customerName: "Vikas", mobile: "9876543210", society: "Apex The Kremlin", tower: "A", flatNumber: "1204", cupSize: "500 ML", flavour: "Blueberry", quantity: 3, preferredTime: "19:30" } as const;
 
 describe("pricing", () => {
   it("charges ₹89 for every 300 ML flavour", () => {
@@ -16,7 +16,16 @@ describe("pricing", () => {
 });
 
 describe("order validation", () => {
-  it("accepts an empty optional address", () => expect(orderSchema.safeParse(validOrder).success).toBe(true));
+  it("accepts a supported society, tower, and flat number", () => expect(orderSchema.safeParse(validOrder).success).toBe(true));
+  it.each(["society", "tower", "flatNumber"])("requires %s", field => {
+    expect(orderSchema.safeParse({ ...validOrder, [field]: "" }).success).toBe(false);
+    expect(orderSchema.safeParse({ ...validOrder, [field]: undefined }).success).toBe(false);
+  });
+  it("rejects unsupported societies and towers", () => {
+    expect(orderSchema.safeParse({ ...validOrder, society: "Some other society" }).success).toBe(false);
+    expect(orderSchema.safeParse({ ...validOrder, tower: "H" }).success).toBe(false);
+    expect(orderSchema.safeParse({ ...validOrder, flatNumber: "   " }).success).toBe(false);
+  });
   it("rejects missing required fields", () => expect(orderSchema.safeParse({}).success).toBe(false));
   it("rejects invalid Indian mobile numbers", () => expect(orderSchema.safeParse({ ...validOrder, mobile: "12345" }).success).toBe(false));
   it("keeps quantity between 1 and 10", () => {

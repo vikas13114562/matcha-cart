@@ -80,7 +80,7 @@ describe("admin settings API", () => {
   it("rejects order submissions while closed with the reopening message", async () => {
     mocks.setting.mockResolvedValue({ value: false, reopensAt: "2099-09-03T07:30:00.000Z" });
     const response = await submitOrder(new Request("http://localhost/api/orders", { method: "POST", body: JSON.stringify({
-      customerName: "Test customer", mobile: "9876543210", cupSize: "500 ML", flavour: "Blueberry", quantity: 3, preferredTime: "19:30",
+      customerName: "Test customer", mobile: "9876543210", society: "Apex The Kremlin", tower: "A", flatNumber: "1204", cupSize: "500 ML", flavour: "Blueberry", quantity: 3, preferredTime: "19:30",
     }) }));
     expect(response.status).toBe(409);
     expect((await response.json()).message).toContain("We will open again on");

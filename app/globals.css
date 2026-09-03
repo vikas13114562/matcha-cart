@@ -4,7 +4,7 @@
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; background: var(--cream); }
 body { margin: 0; color: var(--ink); font-family: var(--font-body), sans-serif; background: radial-gradient(circle at 50% 0%, #fffef9 0, var(--cream) 42rem); }
-button, input, textarea { font: inherit; }
+button, input, textarea, select { font: inherit; }
 button { touch-action: manipulation; }
 .display { font-family: var(--font-display), serif; }
 .page-shell { width: min(100%, 520px); min-height: 100dvh; margin: auto; padding: 18px 16px calc(30px + env(safe-area-inset-bottom)); }

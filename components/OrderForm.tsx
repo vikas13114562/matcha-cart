@@ -7,18 +7,21 @@ import { calculateTotal, CUP_SIZES, FLAVOURS, getUnitPrice, MAX_QUANTITY, MIN_QU
 import { ConfirmedOrder, formatTime } from "@/lib/whatsapp";
 import { OrderInput, orderSchema } from "@/lib/validation";
 import PaymentModal from "./PaymentModal";
+import { addresses } from "@/lib/addresses";
 
 export default function OrderForm() {
   const [confirmed, setConfirmed] = useState<ConfirmedOrder | null>(null);
   const [whatsappNumber, setWhatsappNumber] = useState("917734015723");
   const [serverError, setServerError] = useState("");
-  const { register, control, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<OrderInput>({
+  const { register, control, handleSubmit, reset, setValue, clearErrors, formState: { errors, isSubmitting } } = useForm<OrderInput>({
     resolver: zodResolver(orderSchema),
-    defaultValues: { customerName: "", mobile: "", address: "", cupSize: undefined, flavour: undefined, quantity: 1, preferredTime: "" },
+    defaultValues: { customerName: "", mobile: "", society: addresses.length === 1 ? addresses[0].society : "", tower: "", flatNumber: "", cupSize: undefined, flavour: undefined, quantity: 1, preferredTime: "" },
   });
   const [size, flavour, quantity = 1, time] = useWatch({ control, name: ["cupSize", "flavour", "quantity", "preferredTime"] });
   const unitPrice = size && flavour ? getUnitPrice(size, flavour) : 0;
   const total = size && flavour ? calculateTotal(size, flavour, quantity) : 0;
+  const [society, tower] = useWatch({ control, name: ["society", "tower"] });
+  const selectedSociety = addresses.find(item => item.society === society);
 
   function closeConfirmation() {
     setConfirmed(null);
@@ -47,7 +50,32 @@ export default function OrderForm() {
         <h2 className="section-title">Your details <span>Step 01</span></h2>
         <div className="field"><label htmlFor="name">Name</label><input id="name" className="input" autoComplete="name" placeholder="Your name" {...register("customerName")} />{errors.customerName && <p className="error">{errors.customerName.message}</p>}</div>
         <div className="field"><label htmlFor="mobile">WhatsApp number</label><input id="mobile" className="input" type="tel" inputMode="numeric" autoComplete="tel" maxLength={10} placeholder="10-digit WhatsApp number" aria-describedby="whatsapp-help" {...register("mobile")} /><small id="whatsapp-help">Enter the 10-digit Indian number you use on WhatsApp.</small>{errors.mobile && <p className="error">{errors.mobile.message}</p>}</div>
-        <div className="field"><label htmlFor="address">Address <span style={{ fontWeight: 500, color: "#7b847c" }}>(optional)</span></label><textarea id="address" className="input" autoComplete="street-address" placeholder="Delivery or landmark details" {...register("address")} />{errors.address && <p className="error">{errors.address.message}</p>}</div>
+        <div className="field">
+          <label htmlFor="society">Society (required)</label>
+          <select id="society" className="input" defaultValue={addresses.length === 1 ? addresses[0].society : ""} required aria-invalid={!!errors.society} {...register("society", { onChange: () => {
+            setValue("tower", ""); setValue("flatNumber", ""); clearErrors(["tower", "flatNumber"]);
+          } })}>
+            <option value="" disabled>Select your society</option>
+            {addresses.map(item => <option key={item.society} value={item.society}>{item.society}</option>)}
+          </select>
+          {errors.society && <p className="error">{errors.society.message}</p>}
+          {selectedSociety && <small>{selectedSociety.Area}, {selectedSociety.city}, {selectedSociety.state} - {selectedSociety.pincode}</small>}
+        </div>
+        <div className="field">
+          <label htmlFor="tower">Tower (required)</label>
+          <select id="tower" className="input" defaultValue="" required disabled={!selectedSociety} aria-invalid={!!errors.tower} {...register("tower", { onChange: () => {
+            setValue("flatNumber", ""); clearErrors("flatNumber");
+          } })}>
+            <option value="" disabled>Select your tower</option>
+            {selectedSociety?.Towers.map(item => <option key={item} value={item}>Tower {item}</option>)}
+          </select>
+          {errors.tower && <p className="error">{errors.tower.message}</p>}
+        </div>
+        {selectedSociety && selectedSociety.Towers.includes(tower) && <div className="field">
+          <label htmlFor="flatNumber">Enter floor and flat no. (required)</label>
+          <input id="flatNumber" className="input" type="text" autoComplete="address-line2" placeholder="e.g. 12th floor, flat 1204" maxLength={30} required aria-invalid={!!errors.flatNumber} {...register("flatNumber")} />
+          {errors.flatNumber && <p className="error">{errors.flatNumber.message}</p>}
+        </div>}
 
         <section className="section"><h2 className="section-title">Choose your size <span>Step 02</span></h2><Controller control={control} name="cupSize" render={({ field }) => <div className="choice-grid">{CUP_SIZES.map(item => <button key={item} className={`choice ${field.value === item ? "selected" : ""}`} type="button" aria-pressed={field.value === item} onClick={() => field.onChange(item)}>{item}<br /><small>{item === "300 ML" ? "Starting price ₹89" : "Starting price ₹149"}</small></button>)}</div>} />{errors.cupSize && <p className="error">{errors.cupSize.message}</p>}</section>
 

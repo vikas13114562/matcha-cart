@@ -4,7 +4,7 @@ import OrderForm from "@/components/OrderForm";
 
 const savedOrder = {
   orderId: "MC-1234", customerName: "Test Customer", mobile: "9876543210",
-  address: "Test address", cupSize: "500 ML", flavour: "Blueberry", quantity: 2,
+  address: "Flat 1204, Tower A, Apex The Kremlin, Pratap Vihar, Ghaziabad, Uttar Pradesh - 201009", cupSize: "500 ML", flavour: "Blueberry", quantity: 2,
   unitPrice: 159, totalPrice: 318, preferredTime: "19:30",
 };
 
@@ -17,7 +17,8 @@ async function placeOrder() {
   render(<OrderForm />);
   fireEvent.change(screen.getByLabelText("Name", { exact: true }), { target: { value: savedOrder.customerName } });
   fireEvent.change(screen.getByLabelText("WhatsApp number"), { target: { value: savedOrder.mobile } });
-  fireEvent.change(screen.getByLabelText(/Address/), { target: { value: savedOrder.address } });
+  fireEvent.change(screen.getByLabelText("Tower (required)"), { target: { value: "A" } });
+  fireEvent.change(screen.getByLabelText("Enter floor and flat no. (required)"), { target: { value: "1204" } });
   fireEvent.click(screen.getByRole("button", { name: /500 ML/ }));
   fireEvent.click(screen.getByRole("button", { name: /Blueberry/ }));
   fireEvent.click(screen.getByRole("button", { name: "Increase quantity" }));
@@ -61,7 +62,11 @@ describe("order confirmation flow", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Name", { exact: true })).toHaveValue("");
     expect(screen.getByLabelText("WhatsApp number")).toHaveValue("");
-    expect(screen.getByLabelText(/Address/)).toHaveValue("");
+    expect(screen.getByLabelText("Society (required)")).toHaveValue("Apex The Kremlin");
+    expect(screen.getByLabelText("Tower (required)")).toHaveValue("");
+    expect(screen.queryByLabelText("Enter floor and flat no. (required)")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Tower (required)"), { target: { value: "A" } });
+    expect(screen.getByLabelText("Enter floor and flat no. (required)")).toHaveValue("");
     expect(screen.getByLabelText("Pickup / preparation time")).toHaveValue("");
     expect(screen.getByRole("button", { name: /500 ML/ })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByRole("button", { name: /Blueberry/ })).toHaveAttribute("aria-pressed", "false");
