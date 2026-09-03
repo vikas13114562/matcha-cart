@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canAcceptOrders, prepareTrustedOrder } from "@/app/api/orders/route";
+import { canAcceptOrders, orderErrorMessage, prepareTrustedOrder } from "@/app/api/orders/route";
 import { safeEqual } from "@/app/api/admin/login/route";
 import { orderSchema } from "@/lib/validation";
 
@@ -15,5 +15,11 @@ describe("server trust boundaries", () => {
   it("accepts only exact admin credentials", () => {
     expect(safeEqual("admin", "admin")).toBe(true);
     expect(safeEqual("customer", "admin")).toBe(false);
+  });
+  it("returns actionable database configuration errors", () => {
+    expect(orderErrorMessage(new Error("MONGODB_URI is not configured"))).toContain("not configured");
+    const unavailable = new Error("connection failed");
+    unavailable.name = "MongooseServerSelectionError";
+    expect(orderErrorMessage(unavailable)).toContain("temporarily unavailable");
   });
 });

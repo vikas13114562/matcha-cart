@@ -18,6 +18,16 @@ export function canAcceptOrders(setting: { value: boolean } | null) {
   return setting?.value !== false;
 }
 
+export function orderErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message === "MONGODB_URI is not configured") {
+    return "Ordering is not configured yet. Please contact Matcha Cart.";
+  }
+  if (error instanceof Error && ["MongooseServerSelectionError", "MongoServerSelectionError"].includes(error.name)) {
+    return "Ordering is temporarily unavailable. Please try again shortly.";
+  }
+  return "Something went wrong while placing your order. Please try again.";
+}
+
 export async function POST(request: Request) {
   try {
     const parsed = orderSchema.safeParse(await request.json());
@@ -45,7 +55,13 @@ export async function POST(request: Request) {
       preferredTime: saved.preferredTime,
     };
     return NextResponse.json({ order, whatsappNumber: process.env.WHATSAPP_ORDER_NUMBER || "917734015723" }, { status: 201 });
-  } catch {
-    return NextResponse.json({ message: "Something went wrong while placing your order. Please try again." }, { status: 500 });
+  } catch (error) {
+    // Keep connection strings and customer details out of server logs.
+    console.error("Order submission failed", {
+      databaseConfigured: Boolean(process.env.MONGODB_URI),
+      name: error instanceof Error ? error.name : "UnknownError",
+      code: error && typeof error === "object" && "code" in error ? error.code : undefined,
+    });
+    return NextResponse.json({ message: orderErrorMessage(error) }, { status: 500 });
   }
 }

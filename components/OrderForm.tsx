@@ -24,8 +24,10 @@ export default function OrderForm() {
     setServerError("");
     try {
       const response = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(values) });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Unable to place order");
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.order) {
+        throw new Error(typeof data?.message === "string" ? data.message : "Unable to confirm your order. Please try again shortly.");
+      }
       setConfirmed(data.order);
       setWhatsappNumber(data.whatsappNumber);
     } catch (error) {

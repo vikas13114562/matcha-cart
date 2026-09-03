@@ -10,7 +10,10 @@ globalWithMongoose.mongooseCache = cache;
 export async function connectToDatabase() {
   if (!MONGODB_URI) throw new Error("MONGODB_URI is not configured");
   if (cache.conn) return cache.conn;
-  cache.promise ??= mongoose.connect(MONGODB_URI, { bufferCommands: false });
+  cache.promise ??= mongoose.connect(MONGODB_URI, {
+    bufferCommands: false,
+    serverSelectionTimeoutMS: 10_000,
+  });
   try {
     cache.conn = await cache.promise;
   } catch (error) {
