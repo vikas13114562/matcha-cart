@@ -38,7 +38,9 @@ function openWhatsApp(dialog: HTMLElement) {
 describe("order confirmation flow", () => {
   it("keeps the dialog open with a thank-you and contact number after opening WhatsApp", async () => {
     const dialog = await placeOrder();
+    expect(within(dialog).queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
     openWhatsApp(dialog);
+    expect(within(dialog).getByRole("button", { name: "Close" })).toBeInTheDocument();
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(within(dialog).getByRole("heading", { name: "Thank you for your order!" })).toHaveFocus();
     expect(within(dialog).getByText(savedOrder.mobile)).toBeInTheDocument();
@@ -51,7 +53,6 @@ describe("order confirmation flow", () => {
   it.each([
     { openWhatsAppFirst: true, closeControl: "Close" },
     { openWhatsAppFirst: true, closeControl: "Close order details" },
-    { openWhatsAppFirst: false, closeControl: "Close" },
     { openWhatsAppFirst: false, closeControl: "Close order details" },
   ])("resets the form using $closeControl (WhatsApp opened: $openWhatsAppFirst)", async ({ openWhatsAppFirst, closeControl }) => {
     const dialog = await placeOrder();

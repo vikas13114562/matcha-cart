@@ -43,7 +43,7 @@ export default function PaymentModal({ order, whatsappNumber, onClose }: { order
         </div>
         <a className="whatsapp" href={buildWhatsAppUrl(order, whatsappNumber)} target="_blank" rel="noreferrer" onClick={() => setWhatsappOpened(true)}>Send Order on WhatsApp</a>
         </>}
-        <button className="cta" type="button" onClick={onClose}>Close</button>
+        {whatsappOpened && <button className="cta" type="button" onClick={onClose}>Close</button>}
       </section>
     </div>
   );
