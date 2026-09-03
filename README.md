@@ -46,6 +46,16 @@ The app creates only `orders` and `settings`. The `ordersEnabled` setting is cre
 
 Visit `/admin` and sign in with the environment credentials. The signed session is stored in an HttpOnly, SameSite cookie (and is Secure in production). The dashboard can pause/resume orders and shows the latest 20 orders. All admin endpoints verify the signed session server-side.
 
+- **Turn orders OFF / ON** closes the storefront or opens it immediately. Manually opening clears any scheduled reopening.
+- **Reopening date and time (IST)** closes the cart now and schedules an automatic reopening. Enter the time in India Standard Time, regardless of your device's timezone. You can change or cancel the schedule while closed.
+- Closed visitors see a thank-you, an apology, and the saved reopening date/time. The storefront refreshes availability every 15 seconds, on window focus, and at the scheduled reopening time.
+- The order API uses the same persisted status and schedule, so an already-open order form cannot submit while the cart is closed. Database failures show temporary unavailability rather than implying the cart is open.
+- Use **Refresh dashboard** to load the latest 20 orders, newest first, including customer contact details and order times.
+
+The optional `reopensAt` date is stored atomically alongside the existing `ordersEnabled` value in the same settings document. Older settings remain compatible. Automatic opening is determined on each server request; no background scheduler is needed.
+
+If `/api/admin/settings` returns an HTML **404** in local development despite the route file being present, stop `npm run dev`, move the generated `.next/dev` directory to a backup, and restart `npm run dev` to rebuild it. A JSON **503** instead indicates the database could not be reached; check `MONGODB_URI` and Atlas access.
+
 Customers enter their details, choose a size, flavour, quantity, and preferred time, and see a live total. After server validation and MongoDB storage, a payment QR confirmation appears. **The website does not automatically send the WhatsApp message. It opens WhatsApp with the saved order details pre-filled, and the customer presses Send.**
 
 ## Verification

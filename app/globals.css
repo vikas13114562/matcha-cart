@@ -44,7 +44,8 @@ textarea.input { min-height: 92px; resize: vertical; }
 .cta:disabled { opacity: .6; box-shadow: none; }
 .server-error { margin: 12px 0 0; color: #a53c31; text-align: center; font-size: 13px; }
 .closed { min-height: calc(100dvh - 36px); display: grid; place-content: center; text-align: center; }
-.closed .cup { font-size: 58px; }
+.closed .logo { display: block; width: 144px; height: 144px; margin: 0 auto 28px; }
+.closed .closing-icons { margin-top: 24px; font-size: 36px; }
 .closed h1 { font-size: 52px; margin: 8px 0; color: var(--forest); }
 .closed p { max-width: 320px; color: #607164; line-height: 1.7; }
 .modal-backdrop { position: fixed; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center; padding-top: 30px; background: #0a2119b8; backdrop-filter: blur(4px); }

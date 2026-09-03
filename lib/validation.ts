@@ -8,7 +8,7 @@ const flavourValues = FLAVOURS.map(({ value }) => value) as [
 
 export const orderSchema = z.object({
   customerName: z.string().trim().min(2, "Please enter your name").max(80),
-  mobile: z.string().trim().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number"),
+  mobile: z.string().trim().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian WhatsApp number"),
   address: z.string().trim().max(300).optional().or(z.literal("")),
   cupSize: z.enum(CUP_SIZES, { message: "Choose a cup size" }),
   flavour: z.enum(flavourValues, { message: "Choose a flavour" }),

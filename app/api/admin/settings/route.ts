@@ -1,35 +1,47 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isAdminAuthenticated } from "@/lib/auth";
-import { connectToDatabase } from "@/lib/mongodb";
+import { getCartStatus } from "@/lib/cart-settings";
 import { Order } from "@/models/Order";
 import { Setting } from "@/models/Setting";
+import { connectToDatabase } from "@/lib/mongodb";
 
-const toggleSchema = z.object({ ordersEnabled: z.boolean() });
+export const dynamic = "force-dynamic";
+
+const toggleSchema = z.object({
+  ordersEnabled: z.boolean(),
+  reopensAt: z.string().datetime({ offset: true }).nullable().optional(),
+});
 
 export async function GET() {
   if (!(await isAdminAuthenticated())) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   try {
-    await connectToDatabase();
-    const [setting, orders] = await Promise.all([
-      Setting.findOne({ key: "ordersEnabled" }).lean<{ value: boolean }>(),
-      Order.find().sort({ createdAt: -1 }).limit(20).select("orderId customerName mobile flavour cupSize quantity totalPrice preferredTime createdAt").lean(),
-    ]);
-    return NextResponse.json({ ordersEnabled: setting?.value ?? true, orders });
+    const status = await getCartStatus();
+    const orders = await Order.find().sort({ createdAt: -1, _id: -1 }).limit(20)
+      .select("orderId customerName mobile address flavour cupSize quantity totalPrice preferredTime createdAt").lean();
+    return NextResponse.json({ ...status, orders }, { headers: { "Cache-Control": "no-store" } });
   } catch {
-    return NextResponse.json({ message: "Unable to load the dashboard." }, { status: 500 });
+    return NextResponse.json({ message: "Unable to load the dashboard. Check the MongoDB connection and try again." }, { status: 503 });
   }
 }
 
 export async function PATCH(request: Request) {
   if (!(await isAdminAuthenticated())) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  const parsed = toggleSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ message: "Enter a valid cart status and reopening date/time." }, { status: 400 });
+  const { ordersEnabled } = parsed.data;
+  const reopensAt = ordersEnabled ? null : parsed.data.reopensAt ?? null;
+  if (reopensAt && new Date(reopensAt).getTime() <= Date.now()) {
+    return NextResponse.json({ message: "Choose a reopening date and time in the future." }, { status: 400 });
+  }
   try {
-    const parsed = toggleSchema.safeParse(await request.json());
-    if (!parsed.success) return NextResponse.json({ message: "Invalid setting." }, { status: 400 });
     await connectToDatabase();
-    await Setting.findOneAndUpdate({ key: "ordersEnabled" }, { value: parsed.data.ordersEnabled }, { upsert: true, new: true });
-    return NextResponse.json({ ordersEnabled: parsed.data.ordersEnabled });
+    // Store both values in one document so closing and scheduling are atomic.
+    await Setting.findOneAndUpdate({ key: "ordersEnabled" }, {
+      $set: { value: ordersEnabled, reopensAt: reopensAt ? new Date(reopensAt) : null },
+    }, { upsert: true, new: true, runValidators: true });
+    return NextResponse.json({ ordersEnabled, reopensAt }, { headers: { "Cache-Control": "no-store" } });
   } catch {
-    return NextResponse.json({ message: "Unable to update order status." }, { status: 500 });
+    return NextResponse.json({ message: "Unable to save cart settings. Check the MongoDB connection and try again." }, { status: 503 });
   }
 }

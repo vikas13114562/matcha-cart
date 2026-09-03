@@ -23,7 +23,7 @@ export function buildWhatsAppUrl(order: ConfirmedOrder, number: string) {
 Order ID: ${order.orderId}
 
 Name: ${order.customerName}
-Mobile: ${order.mobile}
+WhatsApp: ${order.mobile}
 Address: ${order.address || "Not provided"}
 
 Flavour: ${order.flavour}

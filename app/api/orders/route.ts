@@ -3,7 +3,8 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { calculateTotal, getUnitPrice } from "@/lib/pricing";
 import { orderSchema } from "@/lib/validation";
 import { Order } from "@/models/Order";
-import { Setting } from "@/models/Setting";
+import { getCartStatus } from "@/lib/cart-settings";
+import { closedCartMessage } from "@/lib/cart-status";
 
 function newOrderId() {
   return `MC-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -33,8 +34,8 @@ export async function POST(request: Request) {
     const parsed = orderSchema.safeParse(await request.json());
     if (!parsed.success) return NextResponse.json({ message: "Please check your order details and try again." }, { status: 400 });
     await connectToDatabase();
-    const setting = await Setting.findOne({ key: "ordersEnabled" }).lean<{ value: boolean }>();
-    if (!canAcceptOrders(setting)) return NextResponse.json({ message: "We're currently not accepting orders. Please check back soon." }, { status: 409 });
+    const status = await getCartStatus();
+    if (!status.ordersEnabled) return NextResponse.json({ message: closedCartMessage(status.reopensAt) }, { status: 409 });
 
     const input = parsed.data;
     const trusted = prepareTrustedOrder(input);
