@@ -50,6 +50,8 @@ textarea.input { min-height: 92px; resize: vertical; }
 .order-pill { padding: 14px; background: #eff3e6; border-radius: 16px; text-align: left; }
 .qr { width: min(78vw, 300px); height: auto; object-fit: contain; margin: 17px auto 8px; display: block; border-radius: 14px; }
 .amount { font-size: 21px; font-weight: 900; }
+.whatsapp-notice { margin-top: 20px; padding: 16px; border: 1px solid #b6c9a8; border-radius: 16px; background: #edf4e5; color: var(--forest); text-align: left; }
+.whatsapp-notice p { margin: 8px 0 0; font-size: 14px; line-height: 1.6; }
 .whatsapp { display: grid; place-items: center; min-height: 58px; margin-top: 15px; border-radius: 17px; color: #fff; background: #1c9b51; text-decoration: none; font-weight: 900; }
 .text-button { min-height: 44px; margin-top: 8px; border: 0; background: transparent; color: #66736b; }
 @keyframes rise { from { transform: translateY(35px); opacity: 0; } }

@@ -55,7 +55,7 @@ export default function OrderForm() {
         <button className="cta" type="submit" disabled={isSubmitting}>{isSubmitting ? "Placing your order..." : "Place Order 🍵"}</button>
         {serverError && <p className="server-error" role="alert">{serverError}</p>}
       </form>
-      {confirmed && <PaymentModal order={confirmed} whatsappNumber={whatsappNumber} onClose={() => setConfirmed(null)} />}
+      {confirmed && <PaymentModal order={confirmed} whatsappNumber={whatsappNumber} />}
     </>
   );
 }
