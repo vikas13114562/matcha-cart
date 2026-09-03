@@ -11,10 +11,16 @@ export function safeEqual(value: string, expected: string) {
 
 export async function POST(request: Request) {
   try {
-    const parsed = loginSchema.safeParse(await request.json());
     const username = process.env.ADMIN_USERNAME;
     const password = process.env.ADMIN_PASSWORD;
-    if (!parsed.success || !username || !password || !safeEqual(parsed.data.username, username) || !safeEqual(parsed.data.password, password)) {
+    if (!username || !password) {
+      return NextResponse.json({ message: "Admin login is not configured. Set ADMIN_USERNAME and ADMIN_PASSWORD in the deployment environment, then redeploy." }, { status: 503 });
+    }
+    if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32) {
+      return NextResponse.json({ message: "Admin sessions are not configured. Set SESSION_SECRET to a random value of at least 32 characters in the deployment environment, then redeploy." }, { status: 503 });
+    }
+    const parsed = loginSchema.safeParse(await request.json().catch(() => null));
+    if (!parsed.success || !safeEqual(parsed.data.username, username) || !safeEqual(parsed.data.password, password)) {
       return NextResponse.json({ message: "Invalid username or password." }, { status: 401 });
     }
     const response = NextResponse.json({ ok: true });

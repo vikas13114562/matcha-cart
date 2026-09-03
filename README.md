@@ -70,3 +70,9 @@ npm run build
 ## Deploy to Vercel
 
 Push the project to GitHub, import it in Vercel, and add all five environment variables under **Project Settings → Environment Variables**. Deploy, then verify the customer order flow and `/admin` against the production MongoDB database. Ensure the real QR image is committed before deployment.
+
+### Admin login on a deployed site
+
+`.env.local` is ignored by Git, so its values are not uploaded with the project. Configure `ADMIN_USERNAME`, `ADMIN_PASSWORD`, and a random `SESSION_SECRET` of at least 32 characters in the hosting dashboard. For Vercel, select **Production** for the live site and **Preview** if you also need preview deployments, then redeploy after saving changes. Enter the raw values in the dashboard, without surrounding `.env` quotes or accidental whitespace. Do not prefix secrets with `NEXT_PUBLIC_`.
+
+Use HTTPS: production sessions use Secure cookies. Sign in with the credentials configured for that deployment. Missing credentials or an invalid session secret return a configuration error (503); incorrect credentials return 401. If login succeeds but the dashboard fails to load, check `MONGODB_URI` and database network access separately—MongoDB is not used to authenticate the admin.
