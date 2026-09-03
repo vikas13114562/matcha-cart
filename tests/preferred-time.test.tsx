@@ -21,17 +21,17 @@ describe("automatic 30-minute delivery", () => {
   it("shows a read-only estimate and updates it while the page stays open", async () => {
     vi.useFakeTimers(); vi.setSystemTime(now);
     render(<OrderForm />);
-    const field = screen.getByLabelText("Estimated delivery time (IST)");
+    const field = screen.getByLabelText("Preferred time");
     expect(field).toHaveValue("14:30");
     expect(field).toHaveAttribute("readonly");
-    expect(screen.getByText(/Delivery is scheduled for 30 minutes after you place your order/)).toBeInTheDocument();
+    expect(screen.getByText(/Select your preferred time/)).toBeInTheDocument();
     await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
     expect(field).toHaveValue("14:31");
   });
   it("allows an automatic estimate across midnight", () => {
     vi.useFakeTimers(); vi.setSystemTime(new Date("2026-09-03T23:45:00+05:30"));
     render(<OrderForm />);
-    expect(screen.getByLabelText("Estimated delivery time (IST)")).toHaveValue("00:15");
+    expect(screen.getByLabelText("Preferred time")).toHaveValue("00:15");
     expect(screen.getByRole("button", { name: /Place Order/ })).toBeEnabled();
   });
 });
