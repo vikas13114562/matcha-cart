@@ -1,11 +1,12 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import OrderForm from "@/components/OrderForm";
 import { addresses } from "@/lib/addresses";
 
 const originalAddresses = [...addresses];
+beforeEach(() => { vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-09-03T10:00:00+05:30")); });
 afterEach(() => {
-  cleanup(); vi.unstubAllGlobals();
+  cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks();
   addresses.splice(0, addresses.length, ...originalAddresses);
 });
 

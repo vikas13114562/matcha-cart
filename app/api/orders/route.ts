@@ -6,6 +6,7 @@ import { Order } from "@/models/Order";
 import { getCartStatus } from "@/lib/cart-settings";
 import { closedCartMessage } from "@/lib/cart-status";
 import { formatDeliveryAddress } from "@/lib/addresses";
+import { preferredTimeError } from "@/lib/preferred-time";
 
 function newOrderId() {
   return `MC-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -34,6 +35,8 @@ export async function POST(request: Request) {
   try {
     const parsed = orderSchema.safeParse(await request.json());
     if (!parsed.success) return NextResponse.json({ message: "Please check your order details and try again." }, { status: 400 });
+    const timeError = preferredTimeError(parsed.data.preferredTime);
+    if (timeError) return NextResponse.json({ message: timeError }, { status: 400 });
     await connectToDatabase();
     const status = await getCartStatus();
     if (!status.ordersEnabled) return NextResponse.json({ message: closedCartMessage(status.reopensAt) }, { status: 409 });

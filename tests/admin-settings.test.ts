@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(), connect: vi.fn(), setting: vi.fn(), update: vi.fn(), find: vi.fn(),
@@ -19,6 +19,7 @@ function request(body: unknown) {
   return new Request("http://localhost/api/admin/settings", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 }
 beforeEach(() => {
+  vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-09-03T10:00:00+05:30"));
   vi.clearAllMocks();
   mocks.auth.mockResolvedValue(true);
   mocks.connect.mockResolvedValue(undefined);
@@ -31,7 +32,17 @@ beforeEach(() => {
   mocks.orders.mockResolvedValue([{ orderId: "MC-1000" }]);
 });
 
+afterEach(() => { vi.restoreAllMocks(); });
+
 describe("admin settings API", () => {
+  it("rejects an order inside the preparation buffer before touching the database", async () => {
+    const response = await submitOrder(new Request("http://localhost/api/orders", { method: "POST", body: JSON.stringify({
+      customerName: "Test customer", mobile: "9876543210", society: "Apex The Kremlin", tower: "A", flatNumber: "1204", cupSize: "500 ML", flavour: "Blueberry", quantity: 3, preferredTime: "10:29",
+    }) }));
+    expect(response.status).toBe(400);
+    expect((await response.json()).message).toContain("at least 30 minutes");
+    expect(mocks.connect).not.toHaveBeenCalled();
+  });
   it("requires authentication for reads and writes", async () => {
     mocks.auth.mockResolvedValue(false);
     expect((await GET()).status).toBe(401);
