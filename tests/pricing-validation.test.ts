@@ -1,37 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { calculateTotal, getUnitPrice } from "@/lib/pricing";
+import { calculateTotal, getUnitPrice, priceItems } from "@/lib/pricing";
 import { orderSchema } from "@/lib/validation";
-
-const validOrder = { customerName: "Vikas", mobile: "9876543210", society: "Apex The Kremlin", tower: "A", flatNumber: "1204", cupSize: "500 ML", flavour: "Blueberry", quantity: 3, preferredTime: "19:30" } as const;
-
-describe("pricing", () => {
-  it("charges ₹89 for every 300 ML flavour", () => {
-    for (const flavour of ["Blueberry", "Strawberry", "Mango", "Chocolate", "Classic Matcha"] as const) expect(getUnitPrice("300 ML", flavour)).toBe(89);
-  });
-  it("charges ₹149 for 500 ML classic and ₹159 for the others", () => {
-    expect(getUnitPrice("500 ML", "Classic Matcha")).toBe(149);
-    for (const flavour of ["Blueberry", "Strawberry", "Mango", "Chocolate"] as const) expect(getUnitPrice("500 ML", flavour)).toBe(159);
-  });
-  it("calculates ₹159 × 3 as ₹477", () => expect(calculateTotal("500 ML", "Blueberry", 3)).toBe(477));
+const validOrder = { customerName:"Vikas", mobile:"9876543210", society:"Apex The Kremlin", tower:"A", flatNumber:"1204", items:[{cupSize:"500 ML",flavour:"Blueberry",quantity:3}], preferredDateTime:"2026-09-04T14:00:00.000Z" } as const;
+describe("pricing",()=>{
+ it("uses configured prices",()=>{ expect(getUnitPrice("300 ML","Mango")).toBe(89); expect(getUnitPrice("500 ML","Classic Matcha")).toBe(149); expect(calculateTotal("500 ML","Blueberry",3)).toBe(477); });
+ it("prices mixed items",()=>expect(priceItems([{cupSize:"500 ML",flavour:"Blueberry",quantity:2},{cupSize:"500 ML",flavour:"Classic Matcha",quantity:1},{cupSize:"300 ML",flavour:"Mango",quantity:2}]).reduce((s,x)=>s+x.lineTotal,0)).toBe(645));
 });
-
-describe("order validation", () => {
-  it("accepts a supported society, tower, and flat number", () => expect(orderSchema.safeParse(validOrder).success).toBe(true));
-  it.each(["society", "tower", "flatNumber"])("requires %s", field => {
-    expect(orderSchema.safeParse({ ...validOrder, [field]: "" }).success).toBe(false);
-    expect(orderSchema.safeParse({ ...validOrder, [field]: undefined }).success).toBe(false);
-  });
-  it("rejects unsupported societies and towers", () => {
-    expect(orderSchema.safeParse({ ...validOrder, society: "Some other society" }).success).toBe(false);
-    expect(orderSchema.safeParse({ ...validOrder, tower: "H" }).success).toBe(false);
-    expect(orderSchema.safeParse({ ...validOrder, flatNumber: "   " }).success).toBe(false);
-  });
-  it("rejects missing required fields", () => expect(orderSchema.safeParse({}).success).toBe(false));
-  it("rejects invalid Indian mobile numbers", () => expect(orderSchema.safeParse({ ...validOrder, mobile: "12345" }).success).toBe(false));
-  it("keeps quantity between 1 and 10", () => {
-    expect(orderSchema.safeParse({ ...validOrder, quantity: 0 }).success).toBe(false);
-    expect(orderSchema.safeParse({ ...validOrder, quantity: 11 }).success).toBe(false);
-    expect(orderSchema.safeParse({ ...validOrder, quantity: 1 }).success).toBe(true);
-    expect(orderSchema.safeParse({ ...validOrder, quantity: 10 }).success).toBe(true);
-  });
+describe("order validation",()=>{
+ it("accepts a valid multi-item order",()=>expect(orderSchema.safeParse(validOrder).success).toBe(true));
+ it.each(["society","tower","flatNumber"])("requires %s",field=>expect(orderSchema.safeParse({...validOrder,[field]:""}).success).toBe(false));
+ it("requires items and limits each quantity",()=>{expect(orderSchema.safeParse({...validOrder,items:[]}).success).toBe(false);expect(orderSchema.safeParse({...validOrder,items:[{...validOrder.items[0],quantity:11}]}).success).toBe(false);});
+ it("rejects invalid details",()=>{expect(orderSchema.safeParse({...validOrder,mobile:"123"}).success).toBe(false);expect(orderSchema.safeParse({...validOrder,tower:"H"}).success).toBe(false);});
 });

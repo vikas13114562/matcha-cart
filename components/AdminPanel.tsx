@@ -6,7 +6,7 @@ import { formatOpeningTime, fromIndiaDateTimeInput, toIndiaDateTimeInput } from 
 
 type RecentOrder = {
   _id: string; orderId: string; customerName: string; mobile: string; address?: string;
-  flavour: string; cupSize: string; quantity: number; totalPrice: number; preferredTime: string; deliveryAt?: string; createdAt?: string;
+  items?: { flavour: string; cupSize: string; quantity: number; lineTotal: number }[]; flavour?: string; cupSize?: string; quantity?: number; totalPrice: number; preferredDateTime?: string; preferredTime?: string; deliveryAt?: string; createdAt?: string;
 };
 
 async function readResponse(response: Response) {
@@ -168,7 +168,7 @@ export default function AdminPanel({ initiallyAuthenticated }: { initiallyAuthen
       {loading ? <p>Loading…</p> : enabled === null ? <p>Dashboard unavailable. Refresh to try again.</p> : orders.length ? orders.map(order => (
         <article className="card" style={{ marginBottom: 10, marginTop: 10, padding: 16 }} key={order._id}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><strong>{order.orderId}</strong><strong>₹{order.totalPrice}</strong></div>
-          <p style={{ margin: "8px 0 4px" }}>{order.flavour} • {order.cupSize} • Qty {order.quantity}</p>
+          {order.items?.length ? order.items.map(item => <p key={`${item.cupSize}-${item.flavour}`} style={{ margin: "8px 0 4px" }}>{item.quantity} × {item.flavour} • {item.cupSize}</p>) : <p style={{ margin: "8px 0 4px" }}>{order.flavour} • {order.cupSize} • Qty {order.quantity}</p>}
           <p style={{ margin: "8px 0" }}>{order.customerName} · WhatsApp: <a href={`tel:${order.mobile}`}>{order.mobile}</a></p>
           <small>Estimated delivery: {formatDeliveryTime(order)}</small>
           {order.address && <p>{order.address}</p>}

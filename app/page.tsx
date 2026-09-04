@@ -15,6 +15,7 @@ export default async function Home() {
           <p className="eyebrow">The hundred</p>
           <h1 className="display">Matcha Cart</h1>
           <p className="tagline">100 Cups Everyday 🍵</p>
+          <aside className="ingredient-highlight"><strong>Made fresh. Made better. 🍵</strong><div><span>🥥 Coconut Milk</span><span>🍓 Real Fruit Puree</span><span>✨ No Added Sugar</span></div></aside>
         </header>
         <OrderForm />
       </main>

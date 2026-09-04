@@ -79,7 +79,7 @@ export default function PaymentModal({
               💬
             </div>
             <h2 id="confirmation-title" className="display">
-              Finish on WhatsApp
+              Thank you for your order! 🍵
             </h2>
             <p className="modal-copy">
               Your order has been saved. One important step remains: send it to
@@ -87,18 +87,9 @@ export default function PaymentModal({
             </p>
             <div className="order-pill">
               <strong>Order {order.orderId}</strong>
+              {order.items.map(item => <div className="summary-row" key={`${item.cupSize}-${item.flavour}`}><span>{item.quantity} × {item.flavour} • {item.cupSize}</span><strong>₹{item.lineTotal}</strong></div>)}
               <div className="summary-row">
-                <span>
-                  {order.flavour} • {order.cupSize}
-                </span>
-                <span>Qty {order.quantity}</span>
-              </div>
-              <div className="summary-row">
-                <span>₹{order.unitPrice} per cup</span>
-                <strong>₹{order.totalPrice}</strong>
-              </div>
-              <div className="summary-row">
-                <span>Estimated delivery</span>
+                <span>Ready</span>
                 <strong>{formatDeliveryTime(order)}</strong>
               </div>
             </div>

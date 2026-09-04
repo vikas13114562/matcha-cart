@@ -1,20 +1,20 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
-import { calculateTotal, getUnitPrice } from "@/lib/pricing";
+import { priceItems } from "@/lib/pricing";
 import { orderSchema } from "@/lib/validation";
 import { Order } from "@/models/Order";
 import { getCartStatus } from "@/lib/cart-settings";
 import { closedCartMessage } from "@/lib/cart-status";
 import { formatDeliveryAddress } from "@/lib/addresses";
-import { getDeliveryDetails, preferredTimeError } from "@/lib/preferred-time";
+import { preferredDateTimeError } from "@/lib/preferred-time";
 
 function newOrderId() {
   return `MC-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
-export function prepareTrustedOrder(input: ReturnType<typeof orderSchema.parse>, now = Date.now()) {
-  const unitPrice = getUnitPrice(input.cupSize, input.flavour);
-  return { ...input, ...getDeliveryDetails(now, input.preferredTime), address: formatDeliveryAddress(input), unitPrice, totalPrice: calculateTotal(input.cupSize, input.flavour, input.quantity) };
+export function prepareTrustedOrder(input: ReturnType<typeof orderSchema.parse>) {
+  const items = priceItems(input.items);
+  return { ...input, items, preferredDateTime: new Date(input.preferredDateTime).toISOString(), address: formatDeliveryAddress(input), totalPrice: items.reduce((sum, item) => sum + item.lineTotal, 0) };
 }
 
 export function canAcceptOrders(setting: { value: boolean } | null) {
@@ -41,9 +41,9 @@ export async function POST(request: Request) {
 
     const input = parsed.data;
     const now = Date.now();
-    const timeError = preferredTimeError(input.preferredTime, now);
+    const timeError = preferredDateTimeError(input.preferredDateTime, now);
     if (timeError) return NextResponse.json({ message: timeError }, { status: 400 });
-    const trusted = prepareTrustedOrder(input, now);
+    const trusted = prepareTrustedOrder(input);
     let saved;
     for (let attempt = 0; attempt < 8; attempt += 1) {
       try {
@@ -56,10 +56,8 @@ export async function POST(request: Request) {
     if (!saved) throw new Error("Could not allocate order ID");
     const order = {
       orderId: saved.orderId, customerName: saved.customerName, mobile: saved.mobile,
-      address: saved.address, cupSize: saved.cupSize, flavour: saved.flavour,
-      quantity: saved.quantity, unitPrice: saved.unitPrice, totalPrice: saved.totalPrice,
-      preferredTime: saved.preferredTime,
-      deliveryAt: saved.deliveryAt,
+      address: saved.address, items: saved.items, totalPrice: saved.totalPrice,
+      preferredDateTime: saved.preferredDateTime,
     };
     return NextResponse.json({ order, whatsappNumber: process.env.WHATSAPP_ORDER_NUMBER || "917734015723" }, { status: 201 });
   } catch (error) {

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CUP_SIZES, FLAVOURS, MAX_QUANTITY, MIN_QUANTITY } from "./pricing";
+import { CUP_SIZES, FLAVOURS, MAX_QUANTITY } from "./pricing";
 import { addresses } from "./addresses";
 
 const flavourValues = FLAVOURS.map(({ value }) => value) as [
@@ -13,10 +13,8 @@ export const orderSchema = z.object({
   society: z.string().trim().min(1, "Select your society"),
   tower: z.string().trim().min(1, "Select your tower"),
   flatNumber: z.string().trim().min(1, "Enter your floor and flat no.").max(30, "Floor and flat no. must be 30 characters or fewer"),
-  cupSize: z.enum(CUP_SIZES, { message: "Choose a cup size" }),
-  flavour: z.enum(flavourValues, { message: "Choose a flavour" }),
-  quantity: z.number().int().min(MIN_QUANTITY).max(MAX_QUANTITY),
-  preferredTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Select your preferred time."),
+  items: z.array(z.object({ cupSize: z.enum(CUP_SIZES), flavour: z.enum(flavourValues), quantity: z.number().int().min(1).max(MAX_QUANTITY) })).min(1, "Choose at least one Matcha"),
+  preferredDateTime: z.string().datetime({ offset: true }),
 }).superRefine((input, context) => {
   const location = addresses.find(item => item.society === input.society);
   if (input.society && !location) {

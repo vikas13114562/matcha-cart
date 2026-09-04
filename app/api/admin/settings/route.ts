@@ -18,7 +18,7 @@ export async function GET() {
   try {
     const status = await getCartStatus();
     const orders = await Order.find().sort({ createdAt: -1, _id: -1 }).limit(20)
-      .select("orderId customerName mobile address flavour cupSize quantity totalPrice preferredTime deliveryAt createdAt").lean();
+      .select("orderId customerName mobile address items flavour cupSize quantity totalPrice preferredDateTime preferredTime deliveryAt createdAt").lean();
     return NextResponse.json({ ...status, orders }, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return NextResponse.json({ message: "Unable to load the dashboard. Check the MongoDB connection and try again." }, { status: 503 });

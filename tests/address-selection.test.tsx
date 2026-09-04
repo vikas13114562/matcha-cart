@@ -24,16 +24,11 @@ describe("delivery address selection", () => {
     expect(screen.getByLabelText("Enter floor and flat no. (required)")).toBeRequired();
   });
 
-  it("blocks submission without a tower and flat number", async () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
+  it("keeps Place Order disabled until a drink is selected", () => {
     render(<OrderForm />);
-    fireEvent.click(screen.getByRole("button", { name: /Place Order/ }));
-    expect(await screen.findByText("Select your tower", { selector: "p" })).toHaveClass("error");
-    fireEvent.change(screen.getByLabelText("Tower (required)"), { target: { value: "A" } });
-    fireEvent.click(screen.getByRole("button", { name: /Place Order/ }));
-    expect(await screen.findByText("Enter your floor and flat no.")).toBeInTheDocument();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /Place Order/ })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Add one Blueberry 500 ML" }));
+    expect(screen.getByRole("button", { name: /Place Order/ })).toBeEnabled();
   });
 
   it("supports additional societies and clears dependent address fields when changed", () => {

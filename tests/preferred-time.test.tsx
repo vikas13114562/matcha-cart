@@ -1,34 +1,24 @@
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { getDeliveryDetails, preferredTimeError } from "@/lib/preferred-time";
-import OrderForm from "@/components/OrderForm";
-afterEach(() => { cleanup(); vi.useRealTimers(); });
-describe("preferred time", () => {
-  const now = Date.parse("2026-09-03T14:00:00+05:30");
-  it("checks the exact 30-minute boundary", () => {
-    expect(preferredTimeError("14:29", now)).toContain("at least 30 minutes");
-    expect(preferredTimeError("13:00", now)).toContain("at least 30 minutes");
-    expect(preferredTimeError("14:30", now)).toBeUndefined();
-    expect(preferredTimeError("19:30", now)).toBeUndefined();
-    expect(preferredTimeError("14:30", now + 1000)).toContain("at least 30 minutes");
+import { describe, expect, it } from "vitest";
+import { formatPreferredDateTime, getTimeSlots, preferredDateTimeError } from "@/lib/preferred-time";
+
+describe("preferred datetime slots", () => {
+  it("rounds now plus 30 minutes up to a 15-minute slot", () => {
+    const now = Date.parse("2026-09-04T14:51:00+05:30");
+    expect(getTimeSlots(now).slice(0, 4)).toEqual([
+      "2026-09-04T10:00:00.000Z", "2026-09-04T10:15:00.000Z", "2026-09-04T10:30:00.000Z", "2026-09-04T10:45:00.000Z",
+    ]);
   });
-  it("preserves the selected time across midnight", () => {
-    const late = Date.parse("2026-09-03T23:45:00+05:30");
-    expect(preferredTimeError("00:10", late)).toContain("at least 30 minutes");
-    expect(preferredTimeError("00:30", late)).toBeUndefined();
-    expect(getDeliveryDetails(late, "00:30")).toEqual({ preferredTime: "00:30", deliveryAt: "2026-09-03T19:00:00.000Z" });
+  it("keeps next-day slots valid across midnight", () => {
+    const now = Date.parse("2026-09-04T23:00:00+05:30");
+    const slots = getTimeSlots(now);
+    expect(slots.slice(0, 4)).toEqual(["2026-09-04T18:00:00.000Z", "2026-09-04T18:15:00.000Z", "2026-09-04T18:30:00.000Z", "2026-09-04T18:45:00.000Z"]);
+    expect(preferredDateTimeError("2026-09-04T19:30:00.000Z", now)).toBeUndefined();
+    expect(formatPreferredDateTime("2026-09-04T19:30:00.000Z", now)).toMatch(/^Tomorrow, 1:00 am$/i);
   });
-  it("retains selection as time passes and displays validation on change", async () => {
-    vi.useFakeTimers(); vi.setSystemTime(now);
-    render(<OrderForm />);
-    const field = screen.getByLabelText("Preferred time");
-    expect(field).not.toHaveAttribute("readonly");
-    fireEvent.change(field, { target: { value: "14:29" } });
-    expect(screen.getByRole("alert")).toHaveTextContent("at least 30 minutes");
-    fireEvent.change(field, { target: { value: "16:00" } });
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
-    expect(field).toHaveValue("16:00");
-    expect(screen.getByText("4:00 PM IST")).toBeInTheDocument();
+  it("enforces the minimum and four-hour maximum", () => {
+    const now = Date.parse("2026-09-04T23:00:00+05:30");
+    expect(preferredDateTimeError("2026-09-04T17:59:00.000Z", now)).toContain("at least 30 minutes");
+    expect(preferredDateTimeError("2026-09-04T21:30:00.000Z", now)).toBeUndefined();
+    expect(preferredDateTimeError("2026-09-04T21:45:00.000Z", now)).toContain("within the next 4 hours");
   });
 });
